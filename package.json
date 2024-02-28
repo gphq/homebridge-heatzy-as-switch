@@ -1,10 +1,10 @@
 {
-  "name": "homebridge-heatzy-as-switch",
-  "bundleDependencies": false,
+  "name": "@gphq/homebridge-heatzy-as-switch-with-chinese-support",
+  "bundleDependencies": [],
   "dependencies": {
     "axios": "^1.6.2"
   },
-  "description": "Use Heatzy as a switch between mode Confort (ON) and Eco (OFF)",
+  "description": "Use Heatzy as a switch with Chinese modes support",
   "devDependencies": {},
   "engines": {
     "homebridge": ">=0.2.0",
@@ -17,5 +17,17 @@
   ],
   "main": "index.js",
   "version": "1.0.0",
-  "repository": "gphq/homebridge-heatzy-as-switch"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gphq/homebridge-heatzy-as-switch.git"
+  },
+  "bugs": {
+    "url": "https://github.com/gphq/homebridge-heatzy-as-switch/issues"
+  },
+  "homepage": "https://github.com/gphq/homebridge-heatzy-as-switch#readme",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
 }

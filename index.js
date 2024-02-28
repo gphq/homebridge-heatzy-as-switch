@@ -1,5 +1,5 @@
 'use strict'
-//v1.3.0 
+//v1.3.0
 // We will use axios module to perform our HTTP requests.
 const url = ('url');
 const axios = require('axios');
@@ -21,10 +21,10 @@ const off = 3;// Off mode
 let Service, Characteristic
 
 module.exports = (homebridge) => {
-  /* this is the starting point for the plugin where we register the accessory */
-  Service = homebridge.hap.Service
-  Characteristic = homebridge.hap.Characteristic
-  homebridge.registerAccessory('homebridge-heatzy-as-switch', 'HeatzyAsSwitch', SwitchAccessory)
+    /* this is the starting point for the plugin where we register the accessory */
+    Service = homebridge.hap.Service
+    Characteristic = homebridge.hap.Characteristic
+    homebridge.registerAccessory('homebridge-heatzy-as-switch', 'HeatzyAsSwitch', SwitchAccessory)
 }
 
 function SwitchAccessory(log, config) {
@@ -33,227 +33,247 @@ function SwitchAccessory(log, config) {
     this.config = config
 // Get informations from config file
     this.getUrl = heatzyUrl + "devdata/" + config['did'] + "/latest";
-  	this.postUrl = heatzyUrl + "control/" + config['did'] ;
-  	this.name = config["name"];
-  	this.username = config["username"];
-  	this.password = config["password"];
-  	this.switchOn = config["switchOn"] || "cft";  	// default value is comfort mode
-  	if (!(validModes.has(this.switchOn))) { // if the set value is invalid, set it to default
-  		this.switchOn = "cft";
-  	};
-  	this.switchOff = config["switchOff"] || "eco";  	// default value is eco mode
-  	if (!(validModes.has(this.switchOff))) { // if the set value is invalid, set it to default
-  		this.switchOff = "eco";
-  	};
-  	this.log("DEBUG - value for on and off : " + this.switchOn + " " + this.switchOff); // XXX
-  	this.interval = config["interval"] || 60;  	// default value is 60s
-  	this.interval = config["interval"] || 60;  	// default value is 60s
-  	this.trace = config["trace"] || false;	//default value is false (no trace)
+    this.postUrl = heatzyUrl + "control/" + config['did'];
+    this.name = config["name"];
+    this.username = config["username"];
+    this.password = config["password"];
+    this.switchOn = config["switchOn"] || "cft";  	// default value is comfort mode
+    if (!(validModes.has(this.switchOn))) { // if the set value is invalid, set it to default
+        this.switchOn = "cft";
+    }
+    ;
+    this.switchOff = config["switchOff"] || "eco";  	// default value is eco mode
+    if (!(validModes.has(this.switchOff))) { // if the set value is invalid, set it to default
+        this.switchOff = "eco";
+    }
+    ;
+    this.log("DEBUG - value for on and off : " + this.switchOn + " " + this.switchOff); // XXX
+    this.interval = config["interval"] || 60;  	// default value is 60s
+    this.interval = config["interval"] || 60;  	// default value is 60s
+    this.trace = config["trace"] || false;	//default value is false (no trace)
 // Heatzy Token management
-  	this.heatzyToken = "";
-  	this.heatzyTokenExpire_at = Date.now() - 10000; // In ms since epoch time (January 1, 1970). Initial value is 10s in the past, to force login and refresh of token
+    this.heatzyToken = "";
+    this.heatzyTokenExpire_at = Date.now() - 10000; // In ms since epoch time (January 1, 1970). Initial value is 10s in the past, to force login and refresh of token
 
-  	this.state = null; // Last state of the device, as known on Heatzy servers
-  	this.updatedAt = 0; // Last time the state was updated on Heatzy server (not used)
+    this.state = null; // Last state of the device, as known on Heatzy servers
+    this.updatedAt = 0; // Last time the state was updated on Heatzy server (not used)
 
-     /* Create a new information service. This just tells HomeKit about our accessory. */
+    /* Create a new information service. This just tells HomeKit about our accessory. */
     this.informationService = new Service.AccessoryInformation()
         .setCharacteristic(Characteristic.Manufacturer, 'Heatzy')
         .setCharacteristic(Characteristic.Model, 'Heatzy Pilote V2')
         .setCharacteristic(Characteristic.SerialNumber, ' unknown')
-  // Create the switch service
-	  this.service = new Service.Switch(this.config.name);
-  // Add to the switch service the functions called to modify it characteristic
-	  this.service
-		.getCharacteristic(Characteristic.On)
-		.on('get', this.getOnCharacteristicHandler.bind(this))
-		.on('set', this.setOnCharacteristicHandler.bind(this));
+    // Create the switch service
+    this.service = new Service.Switch(this.config.name);
+    // Add to the switch service the functions called to modify it characteristic
+    this.service
+        .getCharacteristic(Characteristic.On)
+        .on('get', this.getOnCharacteristicHandler.bind(this))
+        .on('set', this.setOnCharacteristicHandler.bind(this));
 
-	this.updateState()  // Get the current state of the device, and update HomeKit
-	setInterval(this.updateState.bind(this), 1000*this.interval)  // The state of the device will be checked every this.interval seconds
-	this.log("starting HeatzyAsSwitch...");
+    this.updateState()  // Get the current state of the device, and update HomeKit
+    setInterval(this.updateState.bind(this), 1000 * this.interval)  // The state of the device will be checked every this.interval seconds
+    this.log("starting HeatzyAsSwitch...");
 }	//SwitchAccessory
 
 /////////// Supporting functions, for updating the token, getting and setting the state of a device
-async function updateToken (device) {  // This function get the Heatzy token, and store it
-	const me = device;
+async function updateToken(device) {  // This function get the Heatzy token, and store it
+    const me = device;
 //	me.log('loginUrl ' + loginUrl); // Used for debugging <--
-	try {
-  		const response = await axios ({
- 			method: 'post',
-  			url: loginUrl,
-   			headers: {
-            	'Content-Type': 'application/json',
+    try {
+        const response = await axios({
+            method: 'post',
+            url: loginUrl,
+            headers: {
+                'Content-Type': 'application/json',
                 'Accept': 'application/json',
-  				'X-Gizwits-Application-Id': heatzy_Application_Id
- 			},
-   			data: {
-			  "username" : me.username,
-			  "password" : me.password,
-			  "lang": "en"
-			}
-  		})
+                'X-Gizwits-Application-Id': heatzy_Application_Id
+            },
+            data: {
+                "username": me.username,
+                "password": me.password,
+                "lang": "en"
+            }
+        })
 //	me.log(response);
-    if (response.status == 200) {
-    	me.heatzyToken = response.data.token;
-    	me.heatzyTokenExpire_at = 1000 * response.data.expire_at; //The API returns a date in seconds, but javascript works in ms...
-		if (me.trace) {
-			me.log('Logged in Heatzy server.')
-		}
+        if (response.status == 200) {
+            me.heatzyToken = response.data.token;
+            me.heatzyTokenExpire_at = 1000 * response.data.expire_at; //The API returns a date in seconds, but javascript works in ms...
+            if (me.trace) {
+                me.log('Logged in Heatzy server.')
+            }
 
-    }
-    else { // Useless ? all status != 2xx will be errors
-    	me.log ('Error at login - returned code not 200: ' + response.status + ' ' + response.statusText + ' ' + response.data.error_message);
-    }
-  }
-   catch (error) {
-    // handle error
+        } else { // Useless ? all status != 2xx will be errors
+            me.log('Error at login - returned code not 200: ' + response.status + ' ' + response.statusText + ' ' + response.data.error_message);
+        }
+    } catch (error) {
+        // handle error
 //    me.log(error);
-    me.log ('Error - Plugin unable to login to Heatzy server, and will not work');
-    me.log('Error message : ', error.message);
+        me.log('Error - Plugin unable to login to Heatzy server, and will not work');
+        me.log('Error message : ', error.message);
 //     me.log ('Error authenticating: ' + error.response.status + ' ' + error.response.statusText );
-  }
+    }
 } // updateToken
 
 
-async function  getState(device) { //return the state of the device as a boolean. Or null if undefined
-	const me = device;
+async function getState(device) { //return the state of the device as a boolean. Or null if undefined
+    const me = device;
 //    me.log ('test getState 0'); // Used for debugging <--
 //    me.log('getUrl ' + me.getUrl); // Used for debugging <--
-	if (me.heatzyTokenExpire_at < Date.now()) {await updateToken (device)}; // Forced at first run, and then called only if token is expired
-   	var state = false;
-	try {
-  		const response = 	await axios ({
- 			method: 'get',
-  			url: me.getUrl,
-   			headers: {
-            	'Content-Type': 'application/json',
+    if (me.heatzyTokenExpire_at < Date.now()) {
+        await updateToken(device)
+    }
+    ; // Forced at first run, and then called only if token is expired
+    var state = false;
+    try {
+        const response = await axios({
+            method: 'get',
+            url: me.getUrl,
+            headers: {
+                'Content-Type': 'application/json',
                 'Accept': 'application/json',
-  				'X-Gizwits-Application-Id': heatzy_Application_Id,
-  				'X-Gizwits-User-token': me.heatzyToken
- 			},
- 		});
-    // handle success
+                'X-Gizwits-Application-Id': heatzy_Application_Id,
+                'X-Gizwits-User-token': me.heatzyToken
+            },
+        });
+        // handle success
 //    me.log ('test getState 1'); // Used for debugging <--
 //	me.log('getState new state ' + response.data.attr.mode); // Used for debugging <--
 //	me.log('me.switchOn : ' + me.switchOn); // Used for debugging <--
 //  	me.log(response);// Used for debugging <--
-    if (response.status == 200) {
-		if (response.data.attr.mode == me.switchOn) {state = true	}   // All modes which are not this.switchOn will turn off the switch
-    }
-    else { // Useless ? all status != 2xx will be errors
-    	me.log ('Error - returned code not 200: ' + response.status + ' ' + response.statusText + ' ' + response.data.error_message);
-    	state = null
-    }
-  } catch (error) {
-    // handle error
+        if (response.status == 200) {
+            if (response.data.attr.mode == me.switchOn) {
+                state = true
+            }   // All modes which are not this.switchOn will turn off the switch
+        } else { // Useless ? all status != 2xx will be errors
+            me.log('Error - returned code not 200: ' + response.status + ' ' + response.statusText + ' ' + response.data.error_message);
+            state = null
+        }
+    } catch (error) {
+        // handle error
 //    me.log ('test getState 2'); // Used for debugging <--
-     me.log ('Error when getting state : ' + error.code );
-     state = null
-  } finally {return state}
+        me.log('Error when getting state : ' + error.code);
+        state = null
+    } finally {
+        return state
+    }
 } // getState
 
 
-async function  setState(device, state) { //Set the state of the device, and return it if successful. Or null if failed
-	const me = device;
+async function setState(device, state) { //Set the state of the device, and return it if successful. Or null if failed
+    const me = device;
 //    me.log ('test setState'); // Used for debugging <--
 //    me.log('postUrl ' + me.postUrl); // Used for debugging <--
-	if (me.heatzyTokenExpire_at < Date.now()) {await updateToken (device)}; // Forced at first run, and then calld only if token is expired
+    if (me.heatzyTokenExpire_at < Date.now()) {
+        await updateToken(device)
+    }
+    ; // Forced at first run, and then calld only if token is expired
 // Let set mode to the value of the homekit switch
-	let mode = me.switchOff;
-	if (state) {mode = me.switchOn};
+    let mode = me.switchOff;
+    if (state) {
+        mode = me.switchOn
+    }
+    ;
 // The API works with litteral modes (in 2023), but the specification is to use a numeric value. So we convert it.
-	let modeNum = 0;
-	switch (mode) {
-		case "cft" : modeNum = cft; break;
-		 case "eco" : modeNum = eco; break;
-		case "fro" : modeNum = fro; break;
-		case "off" : modeNum = off;
-	}
+    let modeNum = 0;
+    switch (mode) {
+        case "cft" :
+            modeNum = cft;
+            break;
+        case "eco" :
+            modeNum = eco;
+            break;
+        case "fro" :
+            modeNum = fro;
+            break;
+        case "off" :
+            modeNum = off;
+    }
 
-	try {
-  		const response = await axios ({
- 			method: 'post',
-  			url: me.postUrl,
-   			headers: {
-  				'X-Gizwits-Application-Id': heatzy_Application_Id,
-				'X-Gizwits-User-token': me.heatzyToken
- 			},
-   			data: {
-			  "attrs" : {
-			  "mode": modeNum
-			  }
-			}
-  		})
+    try {
+        const response = await axios({
+            method: 'post',
+            url: me.postUrl,
+            headers: {
+                'X-Gizwits-Application-Id': heatzy_Application_Id,
+                'X-Gizwits-User-token': me.heatzyToken
+            },
+            data: {
+                "attrs": {
+                    "mode": modeNum
+                }
+            }
+        })
 //	me.log('SetState mode 0=cft 1=eco : ' + mode ) // Used for debugging <--
 //	me.log(response);// Used for debugging <--
-    if (response.status == 200) {
-    }
-    else { // Useless ? all status != 2xx will be errors
-    	me.log ('Error - returned code not 200: ' + response.status + ' ' + response.statusText + ' ' + response.data.error_message);
-    	state = null
-    }
-  } catch (error) {
-    // handle error
+        if (response.status == 200) {
+        } else { // Useless ? all status != 2xx will be errors
+            me.log('Error - returned code not 200: ' + response.status + ' ' + response.statusText + ' ' + response.data.error_message);
+            state = null
+        }
+    } catch (error) {
+        // handle error
 //    me.log(error);
-     me.log ('Error when setting state : ' + error.code);
-     state = null
-  } finally {return state}
+        me.log('Error when setting state : ' + error.code);
+        state = null
+    } finally {
+        return state
+    }
 } // setState
 
 /////// Implementation of the homebridge services
 
-SwitchAccessory.prototype.updateState = async function() {
-  	var state = await getState(this);
+SwitchAccessory.prototype.updateState = async function () {
+    var state = await getState(this);
 //  	if (this.trace) { this.log('DEBUG - Switch was ' + this.state + '. Updating it to : ' + state)} // Uncomment for easier debugging...
-  	if (state !== null ) {
-  		if (this.state === null) {this.state = state}  //Initialize for first run
-  		if (state !== this.state) {	// If device state has changed since last update
-			if (this.trace) {
-				this.log('Switch state has changed from: ' + this.state + ' to ' + state);
-			};
-		this.state = state;   // Update last state
-		this.service.updateCharacteristic(Characteristic.On, state);  // update HomeKit
-		}
-   	}
-	// If state  is null (i.e unavailable from Heatzy server) , do nothing because the device state will be updated at the next call
-  } // SwitchAccessory.prototype.updateState
+    if (state !== null) {
+        if (this.state === null) {
+            this.state = state
+        }  //Initialize for first run
+        if (state !== this.state) {	// If device state has changed since last update
+            if (this.trace) {
+                this.log('Switch state has changed from: ' + this.state + ' to ' + state);
+            }
+            ;
+            this.state = state;   // Update last state
+            this.service.updateCharacteristic(Characteristic.On, state);  // update HomeKit
+        }
+    }
+    // If state  is null (i.e unavailable from Heatzy server) , do nothing because the device state will be updated at the next call
+} // SwitchAccessory.prototype.updateState
 
 
-SwitchAccessory.prototype.getOnCharacteristicHandler = async function(callback) {
-  	var state = await getState(this);
-  	if (this.trace) {
-		this.log('HomeKit asked for state (true for on, false for off): ' + state)
-	}
-  	if (state != null) {
-  		callback (null, state);
-   	}
-   	else {
-		this.log("Error : Unavailable state");
-		callback (true);
-   	}
+SwitchAccessory.prototype.getOnCharacteristicHandler = async function (callback) {
+    var state = await getState(this);
+    if (this.trace) {
+        this.log('HomeKit asked for state (true for on, false for off): ' + state)
+    }
+    if (state != null) {
+        callback(null, state);
+    } else {
+        this.log("Error : Unavailable state");
+        callback(true);
+    }
 } // SwitchAccessory.prototype.getOnCharacteristicHandler
 
 
-
-SwitchAccessory.prototype.setOnCharacteristicHandler = async function(value, callback) {
-   	var state = await setState(this, value);
-  	if (this.trace) {
-		this.log('HomeKit changed state to (true for on, false for off): ' + state)
-	}
+SwitchAccessory.prototype.setOnCharacteristicHandler = async function (value, callback) {
+    var state = await setState(this, value);
+    if (this.trace) {
+        this.log('HomeKit changed state to (true for on, false for off): ' + state)
+    }
 //  This code works only when the new state is correctly reflected on Heatzy servers.
 // It is not always the case.
-  	if (state != null) {
-  		callback (null, state);
-   	}
-   	else {
-		this.log("Error - Cannot change state");
-		callback (true);
-   	}
+    if (state != null) {
+        callback(null, state);
+    } else {
+        this.log("Error - Cannot change state");
+        callback(true);
+    }
 }  // SwitchAccessory.prototype.setOnCharacteristicHandler
 
 
-SwitchAccessory.prototype.getServices = function() {
-this.log ("Init Services...")
-  return [this.service, this.informationService];
+SwitchAccessory.prototype.getServices = function () {
+    this.log("Init Services...")
+    return [this.service, this.informationService];
 } // SwitchAccessory.prototype.getServices

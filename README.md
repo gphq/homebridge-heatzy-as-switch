@@ -1,5 +1,5 @@
 # homebridge-heatzy-as-switch
- Homebridge plugin for Heatzy devices, considered as switches.
+Homebridge plugin for Heatzy devices, considered as switches. Support Chinese modes.
 
 Heatzy uses the 'fil pilote' protocol to control an electric heater, with 4 modes :
 

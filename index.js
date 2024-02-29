@@ -1,6 +1,5 @@
 'use strict'
 
-const url = require('url');
 const axios = require('axios');
 
 // From Heatzy API: https://drive.google.com/drive/folders/0B9nVzuTl4YMOaXAzRnRhdXVma1k
@@ -37,8 +36,8 @@ function SwitchAccessory(log, config) {
     this.config = config;
 
 	// Config
-    this.getUrl = url.parse(heatzyUrl + "devdata/" + config["did"] + "/latest");
-    this.postUrl = url.parse(heatzyUrl + "control/" + config["did"]);
+    this.getUrl = heatzyUrl + "devdata/" + config["did"] + "/latest";
+    this.postUrl = heatzyUrl + "control/" + config["did"];
     this.name = config["name"];
     this.username = config["username"];
     this.password = config["password"];
@@ -98,7 +97,7 @@ async function updateToken(device) {
             }
         });
 
-        if (response.status == 200) {
+        if (response.status === 200) {
             device.heatzyToken = response.data.token;
             device.heatzyTokenExpireAt = 1000 * response.data.expire_at; // The API returns a date in seconds, but javascript works in ms...
             if (device.trace) {
@@ -130,7 +129,7 @@ async function getState(device) { //return the state of the device as a boolean.
             },
         });
 
-        if (response.status != 200) {
+        if (response.status !== 200) {
             device.log('Error: ' + response.status + ' ' + response.statusText + ' ' + response.data.error_message);
             return null;
         }
@@ -192,7 +191,7 @@ async function setState(device, state) { // Set the state of the device, and ret
             }
         });
 
-        if (response.status != 200) {
+        if (response.status !== 200) {
             device.log('Error: ' + response.status + ' ' + response.statusText + ' ' + response.data.error_message);
             state = null;
         }
